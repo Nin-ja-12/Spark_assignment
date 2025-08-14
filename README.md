@@ -46,15 +46,21 @@ applies hashing via an external API, and outputs the final dataset.
 
 2.Create and activate a virtual environment
 python -m venv venv
+
 source venv/bin/activate   # On macOS/Linux
+
 venv\Scripts\activate      # On Windows
 
 3.Install dependencies
+
 pip install --upgrade pip
+
 pip install -r requirements.txt
 
 4.Set environment variables
+
 Copy .env.example to .env:
+
 cp .env.example .env
-By default, it uses data/claims.csv and data/contract.csv from this repo.
-Adjust paths in .env if your files are elsewhere.
+
+By default, it uses data/claims.csv and data/contract.csv from this repo.Adjust paths in .env if your files are elsewhere.
