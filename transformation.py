@@ -1,19 +1,18 @@
 from pyspark.sql.functions import (
-    col, when, regexp_replace, lit, current_timestamp, date_format
+    col, when, regexp_replace, lit, current_timestamp, date_format 
 )
 
 def transform_claims(claims_df):
     return claims_df.withColumn("CONTRACT_SOURCE_SYSTEM", lit("Europe 3")) \
-        .withColumn("CLAIM_ID", col("CLAIM_ID"))\
         .withColumn("CONTRACT_SOURCE_SYSTEM_ID", col("CONTRACT_ID")) \
-        .withColumn("SOURCE_SYSTEM_ID", regexp_replace("CLAIM_ID", "^[A-Z_]+", "")) \
+       .withColumn("SOURCE_SYSTEM_ID", regexp_replace("CLAIM_ID", "^[A-Z_ ]*", "")) \
         .withColumn("TRANSACTION_TYPE",
                     when(col("CLAIM_TYPE") == "2", "Corporate")
                     .when(col("CLAIM_TYPE") == "1", "Private")
                     .otherwise("Unknown")) \
         .withColumn("TRANSACTION_DIRECTION",
-                    when(col("CLAIM_ID").contains("CL"), "COINSURANCE")
-                    .when(col("CLAIM_ID").contains("RX"), "REINSURANCE")
+                    when(col("CLAIM_ID").startswith("CL"), "COINSURANCE")
+                    .when(col("CLAIM_ID").startswith("RX"), "REINSURANCE")
                     .otherwise("UNKNOWN")) \
         .withColumn("CONFORMED_VALUE", col("AMOUNT")) \
         .withColumn("CREATION_DATE", date_format(col("CREATION_DATE"), "yyyy-MM-dd HH:mm:ss")) \
