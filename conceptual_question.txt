@@ -1,3 +1,6 @@
+Note : For this assignment, I have output the data to a CSV, but in a real production pipeline I would prefer Parquet or Delta Lake. CSV is human-readable but inefficient, while Parquet/Delta gives compression, schema evolution, and much faster analytics
+
+Proposal for Conceptual Question:
 Here is a proposal on how to handle new batches of input data so that existing transactions created in previous batches are not overridden:
 
 1. Data Partitioning
