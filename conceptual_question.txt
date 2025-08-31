@@ -1,0 +1,59 @@
+Here is a proposal on how to handle new batches of input data so that existing transactions created in previous batches are not overridden:
+
+1. Data Partitioning
+
+The most effective way to manage new data batches is to partition the output data. A common and effective partitioning strategy is to use a processing date.
+When writing the TRANSACTIONS data, partition it by the date of processing. For example, the output directory structure would look like this:
+
+/path/to/TRANSACTIONS/
+├── processing_date=2023-10-26/
+│   └── part-00000-....parquet
+├── processing_date=2023-10-27/
+│   └── part-00000-....parquet
+└── ...
+Benefit: This allows you to easily manage and query data for specific processing periods. When a new batch of data is processed, it will be written to a new partition, leaving the old data untouched.
+
+2. Incremental Loading Strategy
+
+To avoid reprocessing all data every time,if possible process only new data.
+
+File Management:
+
+Landing Zone: New input files (CONTRACT and CLAIM) arrive in a landing directory.
+
+Processing: Spark job reads the files from the landing directory, performs the transformations, and writes the output to the partitioned TRANSACTIONS directory.
+Archive: After successful processing, move the input files from the landing directory to an archive directory. This prevents them from being processed again in the next run.
+Spark Save Mode:
+Use saveMode("append") when writing the transformed data. This will add the new data to the TRANSACTIONS table without overwriting existing data.
+
+If we need need to reprocess a specific day's data, we can delete the corresponding partition and re-run the job for that day. 
+  Then, Spark's saveMode("overwrite") could be used with dynamic partition overwrites to replace only the affected partitions.
+
+3. Using a Transactional Data Lake Format (like Delta Lake)
+
+For a more robust and modern solution, consider using a data lakehouse format like Delta Lake. 
+Delta Lake, being tightly integrated with Spark, is an excellent choice.
+
+ACID Transactions: Delta Lake brings ACID (Atomicity, Consistency, Isolation, Durability) transactions to your data lake. 
+This means that your write operations are atomic and you won't have corrupted data if a job fails.
+
+Simplified Operations: Delta Lake simplifies incremental data processing with operations like:
+
+Append: Easily add new data.
+Overwrite: Overwrite the entire table or specific partitions.
+Merge (Upsert): This is a powerful feature that allows us to update existing records and insert new ones in a single operation. 
+we can use a unique key (like the NSE_ID in your target schema) to merge the new batch of transactions with the existing TRANSACTIONS table. 
+This will update any existing transactions and insert the new ones, preventing duplicates.
+
+Proposal Summary:
+
+Input: New batches of CONTRACT and CLAIM data are delivered to a specific landing S3 bucket/folder or HDFS directory.
+Processing: A daily (or more frequent) Spark batch job is triggered.
+Transformation: The Spark job reads the new files from the landing directory.
+Output: The transformed data is written to a TRANSACTIONS table.
+Recommended: The TRANSACTIONS table is stored in Delta Lake format.
+
+The Spark job uses the MERGE operation to update existing transactions and insert new ones based on a unique key
+  (e.g., a composite key of CONTRACT_SOURCE_SYSTEM, CONTRACT_SOURCE_SYSTEM_ID, and SOURCE_SYSTEM_ID, or NSE_ID).
+
+Post-processing: Once the job is successfully completed, the processed input files are moved to an archive location. 
